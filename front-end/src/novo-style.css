@@ -1,0 +1,102 @@
+/* login-cadastro */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.login-container {
+  position: relative;
+  max-width: 80%;
+  width: 400px;
+  height: 400px;
+  display: flex;
+  justify-content: center; /* Ajuste para centralizar horizontalmente */
+  flex-direction: column;
+  align-items: center;
+  background: transparent;
+  color: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  margin: auto;
+}
+
+h2 {
+  text-shadow: 2px 2px black;
+  z-index: 2;
+}
+.login-container form {
+  color: rgb(226, 226, 226);
+  position: relative;
+  z-index: 2;
+  width: 70%;
+}
+
+.text-center h2,
+label {
+  color: white;
+}
+
+.login-container::before {
+  content: "";
+  position: absolute;
+  width: 170px;
+  height: 170%;
+  top: -35;
+  background: linear-gradient(#00ccff, #d500f9);
+  animation: rotate 10s linear infinite;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-container::after {
+  content: "";
+  position: absolute;
+  width: 98%;
+  height: 98%;
+  background: linear-gradient(to bottom, #512da8, #673ab7, #673ab7, #512da8);
+  border-radius: 20px;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.modal-content {
+  max-width: 80%;
+  margin: auto;
+  margin-top: 50px;
+  padding: 30px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(to bottom, #673ab7, #512da8, #512da8, #673ab7);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+/* Estilo do link sem animação */
+.cadastro-link {
+  color: #fff;
+}
+/*teste animação login*/
