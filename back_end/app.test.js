@@ -191,7 +191,7 @@ describe('API Endpoints', () => {
     
         expect(response.status).toBe(404);
         expect(response.body).toEqual({ mensagem: 'Usuário não encontrado.' });
-    });       
+    });         
     
     test('Deve atualizar um usuário com sucesso', async () => {
         const mockUser = {

@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">76.13% </span>
+                <span class="strong">81.91% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>67/88</span>
+                <span class='fraction'>77/94</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">57.14% </span>
+                <span class="strong">81.25% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>16/28</span>
+                <span class='fraction'>26/32</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">76.13% </span>
+                <span class="strong">81.11% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>67/88</span>
+                <span class='fraction'>73/90</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -235,7 +235,12 @@
 <a name='L170'></a><a href='#L170'>170</a>
 <a name='L171'></a><a href='#L171'>171</a>
 <a name='L172'></a><a href='#L172'>172</a>
-<a name='L173'></a><a href='#L173'>173</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -371,6 +376,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
@@ -379,25 +385,29 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -543,35 +553,40 @@ app.delete('/usuario/:id', async (req, res, next) =&gt; {
 });
 &nbsp;
 // Rota para atualizar usuário
-app.put('/usuario/:id', async (req, res) =&gt; {
+// Rota para atualizar usuário
+app.put('/usuario/:id', async (req, res, next) =&gt; {
   const userId = req.params.id;
   const { nome, senha, dat_nascimento, email } = req.body;
 &nbsp;
   try {
-      // Lógica para verificar se o usuário existe
-      const checkUserQuery = `SELECT * FROM usuarios WHERE id = ?`;
-      const user = await global.conn.query(checkUserQuery, [userId]);
+    // Verificar se algum dado foi fornecido para atualização
+    const updateFields = {};
+    if (nome) updateFields.nome = nome;
+    if (senha) updateFields.senha = senha;
+    if (dat_nascimento) updateFields.dat_nascimento = dat_nascimento;
+    if (email) updateFields.email = email;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      if (user.recordset.length === 0) {</span>
-<span class="cstat-no" title="statement not covered" >          return res.status(404).json({ mensagem: 'Usuário não encontrado.' });</span>
-      }
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(200).json({ mensagem: 'Nenhum dado foi alterado.' });
+    }
 &nbsp;
-      // Verificar se algum dado foi fornecido para atualização
-<span class="cstat-no" title="statement not covered" >      if (!nome &amp;&amp; !senha &amp;&amp; !dat_nascimento &amp;&amp; !email) {</span>
-<span class="cstat-no" title="statement not covered" >          return res.status(200).json({ mensagem: 'Nenhum dado foi alterado.' });</span>
-      }
+    // Atualizar usuário no MongoDB
+    const result = await req.db.collection('cadastro').updateOne(
+      { _id: ObjectId(userId) },
+      { $set: updateFields }
+    );
 &nbsp;
-      // Lógica para atualizar o usuário no banco de dados
-      const updateQuery = <span class="cstat-no" title="statement not covered" >`UPDATE usuarios SET nome = ?, senha = ?, dat_nascimento = ?, email = ? WHERE id = ?`;</span>
-      const result = <span class="cstat-no" title="statement not covered" >await global.conn.query(updateQuery, [nome, senha, dat_nascimento, email, userId]);</span>
+<span class="cstat-no" title="statement not covered" >    if (result.matchedCount === 0) {</span>
+<span class="cstat-no" title="statement not covered" >      return res.status(404).json({ mensagem: 'Usuário não encontrado.' });</span>
+    }
 &nbsp;
-      // Se houve sucesso na atualização
-<span class="cstat-no" title="statement not covered" >      return res.status(204).end(); </span>// 204 significa No Content, sem resposta enviada ao cliente
+<span class="cstat-no" title="statement not covered" >    return res.status(204).end(); </span>// 204 significa No Content, sem resposta enviada ao cliente
   } catch (error) {
-      console.error('Erro ao atualizar usuário:', error);
-      return res.status(500).json({ mensagem: 'Erro interno no servidor' });
+    console.error('Erro ao atualizar usuário:', error);
+    return res.status(500).json({ mensagem: 'Erro interno no servidor' });
   }
 });
+&nbsp;
 &nbsp;
 // Middleware de tratamento de erros
 app.use((err, req, res, next) =&gt; {
@@ -586,7 +601,7 @@ module.exports = app;</pre></td></tr></table></pre>
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2024-06-23T18:45:36.032Z
+                at 2024-06-23T19:25:31.985Z
             </div>
         <script src="prettify.js"></script>
         <script>

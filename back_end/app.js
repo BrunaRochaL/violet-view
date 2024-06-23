@@ -134,35 +134,40 @@ app.delete('/usuario/:id', async (req, res, next) => {
 });
 
 // Rota para atualizar usuário
-app.put('/usuario/:id', async (req, res) => {
+// Rota para atualizar usuário
+app.put('/usuario/:id', async (req, res, next) => {
   const userId = req.params.id;
   const { nome, senha, dat_nascimento, email } = req.body;
 
   try {
-      // Lógica para verificar se o usuário existe
-      const checkUserQuery = `SELECT * FROM usuarios WHERE id = ?`;
-      const user = await global.conn.query(checkUserQuery, [userId]);
+    // Verificar se algum dado foi fornecido para atualização
+    const updateFields = {};
+    if (nome) updateFields.nome = nome;
+    if (senha) updateFields.senha = senha;
+    if (dat_nascimento) updateFields.dat_nascimento = dat_nascimento;
+    if (email) updateFields.email = email;
 
-      if (user.recordset.length === 0) {
-          return res.status(404).json({ mensagem: 'Usuário não encontrado.' });
-      }
+    if (Object.keys(updateFields).length === 0) {
+      return res.status(200).json({ mensagem: 'Nenhum dado foi alterado.' });
+    }
 
-      // Verificar se algum dado foi fornecido para atualização
-      if (!nome && !senha && !dat_nascimento && !email) {
-          return res.status(200).json({ mensagem: 'Nenhum dado foi alterado.' });
-      }
+    // Atualizar usuário no MongoDB
+    const result = await req.db.collection('cadastro').updateOne(
+      { _id: ObjectId(userId) },
+      { $set: updateFields }
+    );
 
-      // Lógica para atualizar o usuário no banco de dados
-      const updateQuery = `UPDATE usuarios SET nome = ?, senha = ?, dat_nascimento = ?, email = ? WHERE id = ?`;
-      const result = await global.conn.query(updateQuery, [nome, senha, dat_nascimento, email, userId]);
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ mensagem: 'Usuário não encontrado.' });
+    }
 
-      // Se houve sucesso na atualização
-      return res.status(204).end(); // 204 significa No Content, sem resposta enviada ao cliente
+    return res.status(204).end(); // 204 significa No Content, sem resposta enviada ao cliente
   } catch (error) {
-      console.error('Erro ao atualizar usuário:', error);
-      return res.status(500).json({ mensagem: 'Erro interno no servidor' });
+    console.error('Erro ao atualizar usuário:', error);
+    return res.status(500).json({ mensagem: 'Erro interno no servidor' });
   }
 });
+
 
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {
