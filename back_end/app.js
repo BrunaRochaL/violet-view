@@ -35,8 +35,16 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
     console.error('Erro ao conectar ao MongoDB:', err);
   });
 
+// Middleware para simular erro interno no servidor para fins de teste
+app.use((req, res, next) => {
+  if (req.headers['x-simulate-error']) {
+    return next(new Error('Simulated Error'));
+  }
+  next();
+});
+
 // Rota de login
-app.get('/login', async (req, res) => {
+app.get('/login', async (req, res, next) => {
   try {
     const { email, senha } = req.query;
     const user = await req.db.collection('cadastro').findOne({ email, senha });
@@ -53,13 +61,12 @@ app.get('/login', async (req, res) => {
       res.status(200).json({ autenticado: false });
     }
   } catch (error) {
-    console.error('Erro no login:', error);
-    res.status(500).json({ error: 'Erro interno no servidor' });
+    next(error);
   }
 });
 
 // Rota de filmes
-app.get('/filmes', async (req, res) => {
+app.get('/filmes', async (req, res, next) => {
   try {
     const { nome } = req.query;
     let query = {};
@@ -69,13 +76,12 @@ app.get('/filmes', async (req, res) => {
     const filmes = await req.db.collection('filmes').find(query).toArray();
     res.status(200).json(filmes);
   } catch (error) {
-    console.error('Erro ao buscar filmes:', error);
-    res.status(500).json({ error: 'Erro interno no servidor' });
+    next(error);
   }
 });
 
 // Rota de cadastro de usuário
-app.post('/cadastro', async (req, res) => {
+app.post('/cadastro', async (req, res, next) => {
   try {
     const { nome, senha, dat_nascimento, email } = req.body;
 
@@ -99,61 +105,69 @@ app.post('/cadastro', async (req, res) => {
     await req.db.collection('cadastro').insertOne({ nome, senha, dat_nascimento, email });
     res.status(200).json({ mensagem: 'Cliente registrado com sucesso.' });
   } catch (error) {
-    console.error('Erro no cadastro:', error);
-    res.status(500).json({ error: 'Erro interno no servidor' });
+    next(error);
   }
 });
 
 // Rota de exclusão de usuário
-app.delete('/usuario/:id', async (req, res) => {
+app.delete('/usuario/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const { senha } = req.body;
 
-    const user = await req.db.collection('cadastro').findOne({ _id: ObjectId(id), senha });
+    const user = await req.db.collection('cadastro').findOne({ _id: ObjectId(id) });
+
     if (!user) {
+      return res.status(401).json({ mensagem: 'Senha incorreta ou usuário não encontrado.' });
+    }
+
+    // Verifica se a senha fornecida corresponde à senha armazenada no banco de dados
+    if (user.senha !== senha) {
       return res.status(401).json({ mensagem: 'Senha incorreta ou usuário não encontrado.' });
     }
 
     await req.db.collection('cadastro').deleteOne({ _id: ObjectId(id) });
     res.status(200).json({ mensagem: 'Conta excluída com sucesso.' });
   } catch (error) {
-    console.error('Erro na exclusão de usuário:', error);
-    res.status(500).json({ error: 'Erro interno no servidor' });
+    next(error);
   }
 });
 
-// Rota de atualização de usuário
+// Rota para atualizar usuário
 app.put('/usuario/:id', async (req, res) => {
+  const userId = req.params.id;
+  const { nome, senha, dat_nascimento, email } = req.body;
+
   try {
-    const { id } = req.params;
-    const updateData = req.body;
+      // Lógica para verificar se o usuário existe
+      const checkUserQuery = `SELECT * FROM usuarios WHERE id = ?`;
+      const user = await global.conn.query(checkUserQuery, [userId]);
 
-    // Verifica se o usuário existe
-    const user = await req.db.collection('cadastro').findOne({ _id: new ObjectId(id) });
-    if (!user) {
-      return res.status(404).json({ mensagem: 'Usuário não encontrado.' });
-    }
+      if (user.recordset.length === 0) {
+          return res.status(404).json({ mensagem: 'Usuário não encontrado.' });
+      }
 
-    // Procede com a atualização se o usuário existir
-    const result = await req.db.collection('cadastro').updateOne({ _id: new ObjectId(id) }, { $set: updateData });
+      // Verificar se algum dado foi fornecido para atualização
+      if (!nome && !senha && !dat_nascimento && !email) {
+          return res.status(200).json({ mensagem: 'Nenhum dado foi alterado.' });
+      }
 
-    // Verifica se houve sucesso na atualização
-    if (result.modifiedCount === 0) {
-      throw new Error('Falha ao atualizar usuário');
-    }
+      // Lógica para atualizar o usuário no banco de dados
+      const updateQuery = `UPDATE usuarios SET nome = ?, senha = ?, dat_nascimento = ?, email = ? WHERE id = ?`;
+      const result = await global.conn.query(updateQuery, [nome, senha, dat_nascimento, email, userId]);
 
-    res.status(204).send();
+      // Se houve sucesso na atualização
+      return res.status(204).end(); // 204 significa No Content, sem resposta enviada ao cliente
   } catch (error) {
-    console.error('Erro na atualização de usuário:', error);
-    res.status(500).json({ error: 'Erro interno no servidor' });
+      console.error('Erro ao atualizar usuário:', error);
+      return res.status(500).json({ mensagem: 'Erro interno no servidor' });
   }
 });
 
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {
   console.error('Erro não capturado:', err);
-  res.status(500).json({ error: 'Internal Server Error' });
+  res.status(500).json({ error: 'Erro interno no servidor' });
 });
 
 module.exports = app;
