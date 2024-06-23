@@ -61,8 +61,23 @@ const Home = () => {
     };
   }, []);
 
-  const confirmarLogout = () => {
-    if (window.confirm("Você deseja realmente sair?")) {
+  const confirmarLogout = async () => {
+    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+    const userId = userInfo ? userInfo._id : null;
+
+    if (userId && window.confirm("Você deseja realmente sair?")) {
+      try {
+        await fetch("http://localhost:3001/logout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ userId }),
+        });
+      } catch (error) {
+        console.error("Erro ao registrar logout:", error);
+      }
+
       localStorage.clear();
       navigate("/");
     }

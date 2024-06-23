@@ -18,12 +18,11 @@ const SearchResults = () => {
   }, [query]);
 
   const fetchMovies = (query) => {
-    const omdbApiKey = "2d83b506";
-    fetch(`http://www.omdbapi.com/?s=${query}&apikey=${omdbApiKey}`)
+    fetch(`http://localhost:3001/search?query=${query}`)
       .then((response) => response.json())
       .then((data) => {
-        if (data.Response === "True") {
-          displayResults(data.Search);
+        if (Array.isArray(data)) {
+          displayResults(data);
         } else {
           setMovies([]);
         }
