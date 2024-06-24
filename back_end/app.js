@@ -1,11 +1,12 @@
-const express = require('express');
-const app = express();
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const { MongoClient, ObjectId } = require('mongodb');
+const express = require("express");
+const path = require("path");
+const cors = require("cors");
+const { MongoClient, ObjectId } = require("mongodb");
 
+const app = express();
+const port = 3001; // porta padrão
+app.use(express.json());
 app.use(cors());
-app.use(bodyParser.json());
 
 // Middleware para adicionar o banco de dados ao request
 app.use((req, res, next) => {
@@ -13,134 +14,179 @@ app.use((req, res, next) => {
   next();
 });
 
-const port = 3001; // porta padrão
-
 // Configuração do MongoDB
-const url = "mongodb://root:1234@localhost:27017";
+const url =
+  "mongodb+srv://brunaguex:12345@cluster0.t9zrf6i.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+
 const dbName = "violetview";
 let db;
 
+/*
 MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
   .then((client) => {
     db = client.db(dbName);
-    app.locals.db = db;
     console.log("Conectado ao MongoDB");
-
-    // Inicia o servidor apenas após a conexão com o banco de dados
-    app.listen(port, () => {
-      console.log(`Servidor rodando na porta ${port}`);
-    });
   })
   .catch((err) => {
-    console.error('Erro ao conectar ao MongoDB:', err);
+    console.error(err);
+  });
+*/
+MongoClient.connect(url)
+  .then((client) => {
+    db = client.db(dbName);
+    console.log("Conectado ao MongoDB");
+  })
+  .catch((err) => {
+    console.error(err);
   });
 
-// Middleware para simular erro interno no servidor para fins de teste
-app.use((req, res, next) => {
-  if (req.headers['x-simulate-error']) {
-    return next(new Error('Simulated Error'));
-  }
-  next();
-});
+// Endpoint para login
+app.get("/login", async (req, res) => {
+  const { email, senha } = req.query;
 
-// Rota de login
-app.get('/login', async (req, res, next) => {
   try {
-    const { email, senha } = req.query;
-    const user = await req.db.collection('cadastro').findOne({ email, senha });
+    if (req.headers["x-simulate-error"]) {
+      throw new Error("Simulated server error");
+    }
+
+    if (!email || !senha) {
+      return res
+        .status(400)
+        .json({ mensagem: "Email e senha são obrigatórios." });
+    }
+
+    const user = await db.collection("cadastro").findOne({ email, senha });
 
     if (user) {
-      res.status(200).json({
+      await logAction(user._id, "login");
+      res.json({
         autenticado: true,
-        userInfo: {
-          nome: user.nome,
-          email: user.email,
-        },
+        userInfo: user,
       });
     } else {
-      res.status(200).json({ autenticado: false });
+      res.json({ autenticado: false });
     }
-  } catch (error) {
-    next(error);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ mensagem: "Erro interno no servidor", error: err.message });
   }
 });
 
-// Rota de filmes
-app.get('/filmes', async (req, res, next) => {
+app.get("/filmes", async (req, res) => {
+  const { nome } = req.query;
+
   try {
-    const { nome } = req.query;
+    if (req.headers["x-simulate-error"]) {
+      throw new Error("Simulated server error");
+    }
+
     let query = {};
     if (nome) {
-      query = { nome: new RegExp(nome, 'i') };
+      query.nome = nome;
     }
-    const filmes = await req.db.collection('filmes').find(query).toArray();
-    res.status(200).json(filmes);
-  } catch (error) {
-    next(error);
+
+    const filmes = await db.collection("filmes").find(query).toArray();
+    res.json(filmes);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ mensagem: "Erro interno no servidor", error: err.message });
   }
 });
 
-// Rota de cadastro de usuário
-app.post('/cadastro', async (req, res, next) => {
-  try {
-    const { nome, senha, dat_nascimento, email } = req.body;
-
-    if (!nome || !senha || !dat_nascimento || !email) {
-      return res.status(400).json({ mensagem: 'Erro: Dados incompletos para cadastro.' });
-    }
-
-    const existingUser = await req.db.collection('cadastro').findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ mensagem: 'Erro: O email já está cadastrado.' });
-    }
-
-    const hoje = new Date();
-    const nascimento = new Date(dat_nascimento);
-    const idade = hoje.getFullYear() - nascimento.getFullYear();
-
-    if (idade < 18) {
-      return res.status(400).json({ mensagem: 'Erro: O cliente deve ter no mínimo 18 anos.' });
-    }
-
-    await req.db.collection('cadastro').insertOne({ nome, senha, dat_nascimento, email });
-    res.status(200).json({ mensagem: 'Cliente registrado com sucesso.' });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Rota de exclusão de usuário
-app.delete('/usuario/:id', async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { senha } = req.body;
-
-    const user = await req.db.collection('cadastro').findOne({ _id: ObjectId(id) });
-
-    if (!user) {
-      return res.status(401).json({ mensagem: 'Senha incorreta ou usuário não encontrado.' });
-    }
-
-    // Verifica se a senha fornecida corresponde à senha armazenada no banco de dados
-    if (user.senha !== senha) {
-      return res.status(401).json({ mensagem: 'Senha incorreta ou usuário não encontrado.' });
-    }
-
-    await req.db.collection('cadastro').deleteOne({ _id: ObjectId(id) });
-    res.status(200).json({ mensagem: 'Conta excluída com sucesso.' });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Rota para atualizar usuário
-// Rota para atualizar usuário
-app.put('/usuario/:id', async (req, res, next) => {
-  const userId = req.params.id;
+// Endpoint para cadastro
+app.post("/cadastro", async (req, res) => {
   const { nome, senha, dat_nascimento, email } = req.body;
 
+  if (req.headers["x-simulate-error"]) {
+    return res.status(500).json({
+      mensagem: "Erro interno no servidor",
+      error: "Simulated server error",
+    });
+  }
+
+  if (!nome || !senha || !dat_nascimento || !email) {
+    return res.status(400).json({
+      mensagem:
+        "Nome, senha, data de nascimento e email são campos obrigatórios.",
+    });
+  }
+
   try {
-    // Verificar se algum dado foi fornecido para atualização
+    const existingUser = await db.collection("cadastro").findOne({ email });
+
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ mensagem: "Erro: O email já está cadastrado." });
+    }
+
+    const currentDate = new Date();
+    const idade =
+      currentDate.getFullYear() - new Date(dat_nascimento).getFullYear();
+
+    if (idade < 18) {
+      return res
+        .status(400)
+        .json({ mensagem: "Erro: O cliente deve ter no mínimo 18 anos." });
+    }
+
+    const newUser = { nome, senha, dat_nascimento, email };
+    await db.collection("cadastro").insertOne(newUser);
+
+    res.status(200).json({ mensagem: "Cliente registrado com sucesso." });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ mensagem: "Erro interno no servidor", error: err.message });
+  }
+});
+
+// Endpoint para excluir cadastro por ID
+app.delete("/usuario/:id", async (req, res) => {
+  const id = req.params.id;
+  const { senha } = req.body;
+
+  if (req.headers["x-simulate-error"]) {
+    return res.status(500).json({
+      mensagem: "Erro interno no servidor",
+      error: "Simulated server error",
+    });
+  }
+
+  try {
+    const deleteResult = await db
+      .collection("cadastro")
+      .deleteOne({ _id: new ObjectId(id), senha });
+
+    if (deleteResult.deletedCount > 0) {
+      res.status(200).json({ mensagem: "Conta excluída com sucesso." });
+    } else {
+      res
+        .status(401)
+        .json({ mensagem: "Senha incorreta ou usuário não encontrado." });
+    }
+  } catch (err) {
+    res
+      .status(500)
+      .json({ mensagem: "Erro interno no servidor", error: err.message });
+  }
+});
+
+// Endpoint para atualizar cadastro por ID
+app.put("/usuario/:id", async (req, res) => {
+  const id = req.params.id;
+  const { nome, senha, dat_nascimento, email } = req.body;
+
+  if (req.headers["x-simulate-error"]) {
+    return res.status(500).json({
+      mensagem: "Erro interno no servidor",
+      error: "Simulated server error",
+    });
+  }
+
+  try {
     const updateFields = {};
     if (nome) updateFields.nome = nome;
     if (senha) updateFields.senha = senha;
@@ -148,31 +194,166 @@ app.put('/usuario/:id', async (req, res, next) => {
     if (email) updateFields.email = email;
 
     if (Object.keys(updateFields).length === 0) {
-      return res.status(200).json({ mensagem: 'Nenhum dado foi alterado.' });
+      return res.status(200).json({ mensagem: "Nenhum dado foi alterado." });
     }
 
-    // Atualizar usuário no MongoDB
-    const result = await req.db.collection('cadastro').updateOne(
-      { _id: ObjectId(userId) },
-      { $set: updateFields }
-    );
+    const updateResult = await db
+      .collection("cadastro")
+      .updateOne({ _id: new ObjectId(id) }, { $set: updateFields });
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ mensagem: 'Usuário não encontrado.' });
+    if (updateResult.matchedCount > 0) {
+      res.status(204).end();
+    } else {
+      res.status(200).json({ mensagem: "Nenhum dado foi alterado." });
     }
-
-    return res.status(204).end(); // 204 significa No Content, sem resposta enviada ao cliente
-  } catch (error) {
-    console.error('Erro ao atualizar usuário:', error);
-    return res.status(500).json({ mensagem: 'Erro interno no servidor' });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ mensagem: "Erro interno no servidor", error: err.message });
   }
 });
 
+const saveSearchResults = async (query, results) => {
+  try {
+    await db.collection("search").insertOne({
+      query,
+      results,
+      timestamp: new Date(),
+    });
+  } catch (err) {
+    console.error("Erro ao salvar os resultados da pesquisa:", err);
+  }
+};
+
+// Endpoint para pesquisa de filmes
+app.get("/search", async (req, res) => {
+  const query = req.query.query;
+  if (!query) {
+    return res.status(400).json({ mensagem: "Query parameter is required" });
+  }
+
+  const omdbApiKey = "2d83b506";
+  try {
+    const fetch = (await import("node-fetch")).default;
+    const response = await fetch(
+      `http://www.omdbapi.com/?s=${query}&apikey=${omdbApiKey}`
+    );
+    const data = await response.json();
+
+    if (data.Response === "True") {
+      await saveSearchResults(query, data.Search); // Salva a pesquisa no banco de dados
+      res.json(data.Search);
+    } else {
+      await saveSearchResults(query, []); // Salva a tentativa de pesquisa sem resultados
+      res.status(404).json({ mensagem: "No movies found" });
+    }
+  } catch (error) {
+    res.status(500).json({ mensagem: "Internal server error", error });
+  }
+});
+
+const logAction = async (userId, action) => {
+  try {
+    if (!db) {
+      return;
+    }
+    await db.collection("logins").insertOne({
+      userId: new ObjectId(userId),
+      action,
+      timestamp: new Date(),
+    });
+  } catch (err) {
+    console.error("Erro ao registrar ação:", err);
+  }
+};
+
+// Endpoint para login
+app.get("/login", async (req, res) => {
+  const { email, senha } = req.query;
+
+  try {
+    if (!email || !senha) {
+      return res
+        .status(400)
+        .json({ mensagem: "Email e senha são obrigatórios." });
+    }
+
+    const user = await db.collection("cadastro").findOne({ email, senha });
+    if (user) {
+      await logAction(user._id, "login"); // Registra login
+
+      res.json({ autenticado: true, userInfo: user });
+    } else {
+      res.json({ autenticado: false });
+    }
+  } catch (err) {
+    res
+      .status(500)
+      .json({ mensagem: "Erro interno no servidor", error: err.message });
+  }
+});
+
+// Endpoint para logout
+app.post("/logout", async (req, res) => {
+  const { userId } = req.body;
+
+  try {
+    if (!userId) {
+      return res.status(400).json({ mensagem: "userId é obrigatório." });
+    }
+
+    await logAction(userId, "logout"); // Registra logout
+    res.status(200).json({ mensagem: "Logout registrado com sucesso." });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ mensagem: "Erro interno no servidor", error: err.message });
+  }
+});
+
+// Endpoint para buscar registros de login/logout
+app.get("/logins", async (req, res) => {
+  try {
+    const logins = await db
+      .collection("logins")
+      .aggregate([
+        {
+          $lookup: {
+            from: "cadastro",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        {
+          $unwind: "$user",
+        },
+        {
+          $project: {
+            userId: 1,
+            action: 1,
+            timestamp: 1,
+            userName: "$user.nome",
+            userEmail: "$user.email",
+          },
+        },
+      ])
+      .toArray();
+    res.json(logins);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ mensagem: "Erro ao buscar registros", error: err.message });
+  }
+});
 
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {
-  console.error('Erro não capturado:', err);
-  res.status(500).json({ error: 'Erro interno no servidor' });
+  res.status(500).json({ error: "Erro interno no servidor" });
+});
+
+app.listen(port, () => {
+  console.log("Servidor está rodando na porta " + port);
 });
 
 module.exports = app;
