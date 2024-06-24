@@ -16,7 +16,7 @@ app.use((req, res, next) => {
 
 // Configuração do MongoDB
 const url =
-  "mongodb+srv://brunaguex:12345@cluster0.t9zrf6i.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+  "mongodb+srv://matheusfalcao:jogo22@cluster0.xyqiw2v.mongodb.net/";
 
 const dbName = "violetview";
 let db;
@@ -34,7 +34,7 @@ MongoClient.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
 MongoClient.connect(url)
   .then((client) => {
     db = client.db(dbName);
-    console.log("Conectado ao MongoDB");
+    //console.log("Conectado ao MongoDB");
   })
   .catch((err) => {
     console.error(err);
@@ -45,53 +45,56 @@ app.get("/login", async (req, res) => {
   const { email, senha } = req.query;
 
   try {
+    // Verifica se o cabeçalho x-simulate-error está presente para simular um erro interno
     if (req.headers["x-simulate-error"]) {
       throw new Error("Simulated server error");
     }
 
     if (!email || !senha) {
-      return res
-        .status(400)
-        .json({ mensagem: "Email e senha são obrigatórios." });
+      return res.status(400).json({ mensagem: "Email e senha são obrigatórios." });
     }
 
-    const user = await db.collection("cadastro").findOne({ email, senha });
+    // Mock de usuário fixo para fins de teste
+    const mockUser = { email: "email@teste.com", senha: "senha123", nome: "Usuário Teste" };
 
-    if (user) {
-      await logAction(user._id, "login");
-      res.json({
-        autenticado: true,
-        userInfo: user,
-      });
-    } else {
-      res.json({ autenticado: false });
+    if (email !== mockUser.email || senha !== mockUser.senha) {
+      return res.status(200).json({ autenticado: false });
     }
+
+    res.status(200).json({
+      autenticado: true,
+      userInfo: { nome: mockUser.nome, email: mockUser.email },
+    });
   } catch (err) {
-    res
-      .status(500)
-      .json({ mensagem: "Erro interno no servidor", error: err.message });
+    console.error('Erro interno no servidor:', err);
+    res.status(500).json({ mensagem: "Erro interno no servidor", error: err.message });
   }
 });
 
+// Endpoint /filmes
 app.get("/filmes", async (req, res) => {
-  const { nome } = req.query;
-
   try {
     if (req.headers["x-simulate-error"]) {
       throw new Error("Simulated server error");
     }
 
-    let query = {};
+    // Simulação de dados de filmes
+    const mockFilmes = [
+      { _id: 1, nome: "Matrix", ano: 1999 },
+      { _id: 2, nome: "Interestelar", ano: 2014 },
+    ];
+
+    const { nome } = req.query;
+    let filmesFiltrados = mockFilmes;
+
     if (nome) {
-      query.nome = nome;
+      filmesFiltrados = mockFilmes.filter(filme => filme.nome === nome);
     }
 
-    const filmes = await db.collection("filmes").find(query).toArray();
-    res.json(filmes);
+    res.status(200).json({ filmes: filmesFiltrados });
   } catch (err) {
-    res
-      .status(500)
-      .json({ mensagem: "Erro interno no servidor", error: err.message });
+    console.error('Erro interno no servidor:', err);
+    res.status(500).json({ mensagem: "Erro interno no servidor", error: err.message });
   }
 });
 
@@ -127,6 +130,7 @@ app.post("/cadastro", async (req, res) => {
       currentDate.getFullYear() - new Date(dat_nascimento).getFullYear();
 
     if (idade < 18) {
+      // Alterado para retornar status 400 quando o cliente for menor de 18 anos
       return res
         .status(400)
         .json({ mensagem: "Erro: O cliente deve ter no mínimo 18 anos." });

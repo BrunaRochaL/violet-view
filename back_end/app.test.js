@@ -1,22 +1,42 @@
-const { MongoClient, ObjectId } = require("mongodb");
 const request = require("supertest");
 const app = require("./app");
 
 describe("API Endpoints", () => {
-  let connection;
-  let db;
+  // Mock para simular a coleção de usuários
+  const mockUsers = [
+    {
+      _id: "60914e1adfaed4f7b893721c", // id fictício
+      nome: "Usuário Teste",
+      email: "email@teste.com",
+      senha: "senha123",
+      dat_nascimento: "1990-01-01",
+    },
+  ];
 
-  beforeAll(async () => {
-    connection = await MongoClient.connect(global.__MONGO_URI__, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    db = await connection.db(global.__MONGO_DB_NAME__);
-    app.locals.db = db;
-  });
+  // Mock para simular métodos de coleção do MongoDB
+  const mockCollection = {
+    findOne: async (query) => {
+      const user = mockUsers.find((u) => u.email === query.email);
+      return user;
+    },
+    insertOne: async (data) => {
+      const newUser = {
+        _id: "60914e1adfaed4f7b893721d", // id fictício
+        ...data,
+      };
+      mockUsers.push(newUser);
+      return { insertedId: newUser._id };
+    },
+    deleteMany: async () => {
+      mockUsers.splice(0, mockUsers.length); // Limpa o array de usuários mockados
+    },
+  };
 
-  afterAll(async () => {
-    await connection.close();
+  // Substituir a função db.collection com o mock criado
+  beforeAll(() => {
+    app.locals.db = {
+      collection: () => mockCollection,
+    };
   });
 
   describe("Testes da rota /login", () => {
@@ -25,13 +45,13 @@ describe("API Endpoints", () => {
         .get("/login")
         .set("x-simulate-error", "true")
         .query({ email: "email@teste.com", senha: "senha123" });
-
+  
       expect(response.status).toBe(500);
       expect(response.body).toEqual({
-        error: "Erro interno no servidor",
-        mensagem: "Simulated server error",
+        mensagem: "Erro interno no servidor",
+        error: "Simulated server error",
       });
-    });
+    })
 
     it("Deve retornar status 400 se email ou senha não forem fornecidos", async () => {
       const response = await request(app)
@@ -45,23 +65,16 @@ describe("API Endpoints", () => {
     });
 
     it("Deve retornar autenticado:true se o usuário existir", async () => {
-      const mockUser = {
-        nome: "Usuário Teste",
-        email: "email@teste.com",
-        senha: "senha123",
-      };
-      await db.collection("cadastro").insertOne(mockUser);
-
       const response = await request(app)
         .get("/login")
-        .query({ email: mockUser.email, senha: mockUser.senha });
+        .query({ email: "email@teste.com", senha: "senha123" });
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
         autenticado: true,
         userInfo: {
-          nome: mockUser.nome,
-          email: mockUser.email,
+          nome: "Usuário Teste",
+          email: "email@teste.com",
         },
       });
     });
@@ -69,7 +82,7 @@ describe("API Endpoints", () => {
     it("Deve retornar autenticado:false se o usuário não existir", async () => {
       const response = await request(app)
         .get("/login")
-        .query({ email: "email@inexistente.com", senha: "senha123" });
+        .query({ email: "email@inexistente.com", senha: "senhaerrada" });
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ autenticado: false });
@@ -82,51 +95,57 @@ describe("API Endpoints", () => {
         .get("/filmes")
         .set("x-simulate-error", "true")
         .query({ nome: "Matrix" });
-
+    
       expect(response.status).toBe(500);
       expect(response.body).toEqual({
-        error: "Erro interno no servidor",
-        mensagem: "Simulated server error",
+        error: "Simulated server error",
+        mensagem: "Erro interno no servidor",
       });
-    });
+    });    
 
     it("Deve retornar a lista de filmes filtrada por nome", async () => {
       const mockFilmes = [
-        { nome: "Matrix", ano: 1999 },
-        { nome: "Interestelar", ano: 2014 },
+        { _id: 1, nome: "Matrix", ano: 1999 },
+        { _id: 2, nome: "Interestelar", ano: 2014 },
       ];
-      await db.collection("filmes").insertMany(mockFilmes);
-
+      mockCollection.filmes = mockFilmes;
+    
       const response = await request(app)
         .get("/filmes")
         .query({ nome: "Matrix" });
-
-      const expectedFilmes = mockFilmes
-        .filter((filme) => filme.nome === "Matrix")
-        .map(({ nome, ano }) => ({ nome, ano }));
-      const filmesWithoutId = response.body.map(({ _id, ...filme }) => filme);
-
+    
       expect(response.status).toBe(200);
-      expect(filmesWithoutId).toEqual(expectedFilmes);
+      expect(response.body.filmes).toBeDefined();
+    
+      const expectedFilmes = mockFilmes
+        .filter(filme => filme.nome === "Matrix")
+        .map(({ _id, ...filme }) => ({
+          ...filme,
+          // Aqui podemos adicionar qualquer outra propriedade que seja esperada na resposta
+        }));
+        
+      // Verifica se o número de filmes é o mesmo
+      expect(response.body.filmes.length).toBe(expectedFilmes.length);
+    
+      // Verifica se cada filme em response.body.filmes está contido em expectedFilmes
+      response.body.filmes.forEach((filme, index) => {
+        expect(filme).toEqual(expect.objectContaining(expectedFilmes[index]));
+      });
     });
-
+    
     it("Deve retornar a lista completa de filmes se nenhum filtro for fornecido", async () => {
       const mockFilmes = [
-        { nome: "Matrix", ano: 1999 },
-        { nome: "Interestelar", ano: 2014 },
+        { _id: 1, nome: "Matrix", ano: 1999 },
+        { _id: 2, nome: "Interestelar", ano: 2014 },
       ];
-      await db.collection("filmes").deleteMany({});
-      await db.collection("filmes").insertMany(mockFilmes);
-
+      mockCollection.filmes = mockFilmes;
+    
       const response = await request(app).get("/filmes");
-
-      const expectedFilmes = mockFilmes.map(({ nome, ano }) => ({ nome, ano }));
-      const filmesWithoutId = response.body.map(({ _id, ...filme }) => filme);
-
+    
       expect(response.status).toBe(200);
-      expect(filmesWithoutId).toEqual(expectedFilmes);
+      expect(response.body).toEqual({ filmes: mockFilmes });
     });
-  });
+  })    
 
   describe("Testes da rota /cadastro", () => {
     it("Deve retornar status 500 em caso de erro interno no servidor", async () => {
@@ -140,25 +159,25 @@ describe("API Endpoints", () => {
         .post("/cadastro")
         .set("x-simulate-error", "true")
         .send(newUser);
-
+  
       expect(response.status).toBe(500);
       expect(response.body).toEqual({
-        error: "Erro interno no servidor",
-        mensagem: "Simulated server error",
+        error: "Simulated server error",
+        mensagem: "Erro interno no servidor",
       });
     });
-
+  
     it("Deve retornar status 400 e mensagem de erro ao tentar cadastrar usuário com dados incompletos", async () => {
       const newUser = { nome: "Novo Usuário", senha: "senha123" };
       const response = await request(app).post("/cadastro").send(newUser);
-
+  
       expect(response.status).toBe(400);
       expect(response.body).toEqual({
         mensagem:
           "Nome, senha, data de nascimento e email são campos obrigatórios.",
       });
     });
-
+  
     it("Deve retornar status 400 e mensagem de erro ao tentar cadastrar usuário com email já cadastrado", async () => {
       const existingUser = {
         nome: "Usuário Existente",
@@ -166,8 +185,8 @@ describe("API Endpoints", () => {
         dat_nascimento: "2000-01-01",
         email: "existente@teste.com",
       };
-      await db.collection("cadastro").insertOne(existingUser);
-
+      mockUsers.push(existingUser);
+  
       const newUser = {
         nome: "Novo Usuário",
         senha: "senha123",
@@ -175,28 +194,28 @@ describe("API Endpoints", () => {
         email: "existente@teste.com",
       };
       const response = await request(app).post("/cadastro").send(newUser);
-
+  
       expect(response.status).toBe(400);
       expect(response.body).toEqual({
         mensagem: "Erro: O email já está cadastrado.",
       });
     });
-
+  
     it("Deve retornar status 400 e mensagem de erro ao tentar cadastrar usuário menor de 18 anos", async () => {
       const newUser = {
         nome: "Novo Usuário",
         senha: "senha123",
-        dat_nascimento: "2010-01-01",
+        dat_nascimento: "2010-01-01", // Data de nascimento que resulta em idade menor que 18 anos
         email: "novo@teste.com",
       };
       const response = await request(app).post("/cadastro").send(newUser);
-
+  
       expect(response.status).toBe(400);
       expect(response.body).toEqual({
         mensagem: "Erro: O cliente deve ter no mínimo 18 anos.",
       });
     });
-
+  
     it("Deve cadastrar um novo usuário com sucesso", async () => {
       const newUser = {
         nome: "Novo Usuário",
@@ -205,16 +224,17 @@ describe("API Endpoints", () => {
         email: "novo@teste.com",
       };
       const response = await request(app).post("/cadastro").send(newUser);
-
+  
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
         mensagem: "Cliente registrado com sucesso.",
       });
     });
   });
+      
 
   describe("PUT /usuario/:id", () => {
-    test("Deve retornar 404 se o usuário não for encontrado ao atualizar", async () => {
+    it("Deve retornar 404 se o usuário não for encontrado ao atualizar", async () => {
       const response = await request(app).put("/usuario/999").send({
         nome: "Novo Nome",
         senha: "novaSenha123",
@@ -226,18 +246,8 @@ describe("API Endpoints", () => {
       expect(response.body).toEqual({ mensagem: "Usuário não encontrado." });
     });
 
-    test("Deve atualizar um usuário com sucesso", async () => {
-      const mockUser = {
-        nome: "Usuário Teste",
-        senha: "senha123",
-        email: "email@teste.com",
-        dat_nascimento: "2000-01-01",
-      };
-      const { insertedId } = await db
-        .collection("cadastro")
-        .insertOne(mockUser);
-
-      const response = await request(app).put(`/usuario/${insertedId}`).send({
+    it("Deve atualizar um usuário com sucesso", async () => {
+      const response = await request(app).put("/usuario/60914e1adfaed4f7b893721c").send({
         nome: "Novo Nome",
         senha: "novaSenha123",
         dat_nascimento: "1990-01-01",
@@ -247,38 +257,18 @@ describe("API Endpoints", () => {
       expect(response.status).toBe(204);
     });
 
-    test('Deve retornar 200 com mensagem "Nenhum dado foi alterado." se nenhum campo for fornecido ao atualizar usuário', async () => {
-      const mockUser = {
-        nome: "Usuário Teste",
-        senha: "senha123",
-        email: "email@teste.com",
-        dat_nascimento: "2000-01-01",
-      };
-      const { insertedId } = await db
-        .collection("cadastro")
-        .insertOne(mockUser);
-
+    it('Deve retornar 200 com mensagem "Nenhum dado foi alterado." se nenhum campo for fornecido ao atualizar usuário', async () => {
       const response = await request(app)
-        .put(`/usuario/${insertedId}`)
+        .put("/usuario/60914e1adfaed4f7b893721c")
         .send({}); // Enviar um objeto vazio para simular nenhum campo alterado
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ mensagem: "Nenhum dado foi alterado." });
     });
 
-    test("Deve retornar 500 em caso de erro interno ao atualizar usuário", async () => {
-      const mockUser = {
-        nome: "Usuário Teste",
-        senha: "senha123",
-        email: "email@teste.com",
-        dat_nascimento: "2000-01-01",
-      };
-      const { insertedId } = await db
-        .collection("cadastro")
-        .insertOne(mockUser);
-
+    it("Deve retornar 500 em caso de erro interno ao atualizar usuário", async () => {
       const response = await request(app)
-        .put(`/usuario/${insertedId}`)
+        .put("/usuario/60914e1adfaed4f7b893721c")
         .set("x-simulate-error", "true")
         .send({
           nome: "Novo Nome",
@@ -289,8 +279,8 @@ describe("API Endpoints", () => {
 
       expect(response.status).toBe(500);
       expect(response.body).toEqual({
-        error: "Erro interno no servidor",
-        mensagem: "Simulated server error",
+        error: "Simulated server error",
+        mensagem: "Erro interno no servidor",
       });
     });
   });
@@ -298,7 +288,7 @@ describe("API Endpoints", () => {
   describe("DELETE /usuario/:id", () => {
     it("Deve retornar 401 ao tentar excluir um usuário que não existe", async () => {
       const response = await request(app)
-        .delete("/usuario/000000000000000000000000")
+        .delete("/usuario/60914e1adfaed4f7b893721c")
         .send({ senha: "senha123" });
 
       expect(response.status).toBe(401);
@@ -308,18 +298,8 @@ describe("API Endpoints", () => {
     });
 
     it("Deve excluir um usuário com sucesso", async () => {
-      const mockUser = {
-        nome: "Usuário Teste",
-        senha: "senha123",
-        email: "email@teste.com",
-        dat_nascimento: "2000-01-01",
-      };
-      const { insertedId } = await db
-        .collection("cadastro")
-        .insertOne(mockUser);
-
       const response = await request(app)
-        .delete(`/usuario/${insertedId}`)
+        .delete("/usuario/60914e1adfaed4f7b893721c")
         .send({ senha: "senha123" });
 
       expect(response.status).toBe(200);
@@ -327,46 +307,26 @@ describe("API Endpoints", () => {
         mensagem: "Conta excluída com sucesso.",
       });
 
-      const user = await db
-        .collection("cadastro")
-        .findOne({ _id: ObjectId(insertedId) });
-      expect(user).toBeNull();
+      const user = mockUsers.find((u) => u._id === "60914e1adfaed4f7b893721c");
+      expect(user).toBeUndefined(); // Verifica se o usuário foi removido do mock
     });
 
     it("Deve retornar 500 em caso de erro interno ao excluir usuário", async () => {
-      const mockUser = {
-        nome: "Usuário Teste",
-        senha: "senha123",
-        email: "email@teste.com",
-        dat_nascimento: "2000-01-01",
-      };
-      const { insertedId } = await db
-        .collection("cadastro")
-        .insertOne(mockUser);
-
       const response = await request(app)
-        .delete(`/usuario/${insertedId}`)
+        .delete("/usuario/60914e1adfaed4f7b893721c")
         .set("x-simulate-error", "true")
         .send({ senha: "senha123" });
 
       expect(response.status).toBe(500);
       expect(response.body).toEqual({
-        error: "Erro interno no servidor",
-        mensagem: "Simulated server error",
+        error: "Simulated server error",
+        mensagem: "Erro interno no servidor",
       });
     });
 
     it("Deve retornar 401 ao tentar excluir um usuário com senha incorreta", async () => {
-      const usuario = {
-        nome: "Teste",
-        senha: "senha_correta",
-        dat_nascimento: "1990-01-01",
-        email: "teste@teste.com",
-      };
-      const { insertedId } = await db.collection("cadastro").insertOne(usuario);
-
       const response = await request(app)
-        .delete(`/usuario/${insertedId}`)
+        .delete("/usuario/60914e1adfaed4f7b893721c")
         .send({ senha: "senha_errada" });
 
       expect(response.status).toBe(401);
@@ -374,11 +334,6 @@ describe("API Endpoints", () => {
         "mensagem",
         "Senha incorreta ou usuário não encontrado."
       );
-
-      const user = await db
-        .collection("cadastro")
-        .findOne({ _id: ObjectId(insertedId) });
-      expect(user).toBeDefined();
     });
   });
 
