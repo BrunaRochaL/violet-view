@@ -35,13 +35,13 @@ describe('GET /login', () => {
     await db.collection('cadastro').deleteMany({});
   });
 
-  it('should return 400 if email or senha is missing', async () => {
+  it('deve retornar 400 se o email ou senha estiverem faltando', async () => {
     const res = await request(app).get('/login').query({ email: 'test@example.com' });
     expect(res.statusCode).toEqual(400);
     expect(res.body).toHaveProperty('mensagem', 'Email e senha são obrigatórios.');
   });
 
-  it('should return 200 and user info if credentials are correct', async () => {
+  it('deve retornar 200 e as informações do usuário se as credenciais estiverem corretas', async () => {
     const usersCollection = db.collection('cadastro');
     const testUser = { email: 'test@example.com', senha: '123456', nome: 'Test User' };
     await usersCollection.insertOne(testUser);
@@ -54,14 +54,14 @@ describe('GET /login', () => {
     await usersCollection.deleteOne({ email: 'test@example.com' }); // Cleanup
   });
 
-  it('should return 200 and autenticado false if credentials are incorrect', async () => {
+  it('deve retornar 200 e autenticado como falso se as credenciais estiverem incorretas', async () => {
     const res = await request(app).get('/login').query({ email: 'test@example.com', senha: 'wrongpassword' });
     expect(res.statusCode).toEqual(200);
     expect(res.body).toHaveProperty('autenticado', false);
     expect(res.body).not.toHaveProperty('userInfo');
   });
 
-  it('should return 500 if an internal server error occurs', async () => {
+  it('deve retornar 500 se ocorrer um erro interno no servidor', async () => {
     // Simula um erro interno no servidor ao consultar o banco de dados
     jest.spyOn(db.collection('cadastro'), 'findOne').mockImplementationOnce(() => {
       throw new Error('Erro no banco de dados');
@@ -84,7 +84,7 @@ describe('POST /cadastro', () => {
     await db.collection('cadastro').deleteMany({});
   });
 
-  it('should return 400 if required fields are missing', async () => {
+  it('deve retornar 400 se os campos obrigatórios estiverem faltando', async () => {
     const res = await request(app)
       .post('/cadastro')
       .send({ nome: 'Test', senha: '123456' });
@@ -93,7 +93,7 @@ describe('POST /cadastro', () => {
     expect(res.body).toHaveProperty('mensagem', 'Nome, senha, data de nascimento e email são campos obrigatórios.');
   });
 
-  it('should return 400 if email already exists', async () => {
+  it('deve retornar 400 se o email já existir', async () => {
     const existingUser = {
       nome: 'Existing User',
       senha: '123456',
@@ -113,7 +113,7 @@ describe('POST /cadastro', () => {
     await db.collection('cadastro').deleteOne({ email: 'existinguser@example.com' });
   });
 
-  it('should return 400 if client is under 18 years old', async () => {
+  it('deve retornar 400 se o cliente tiver menos de 18 anos', async () => {
     const newUser = {
       nome: 'Test User',
       senha: '123456',
@@ -129,7 +129,7 @@ describe('POST /cadastro', () => {
     expect(res.body).toHaveProperty('mensagem', 'Erro: O cliente deve ter no mínimo 18 anos.');
   });
 
-  it('should return 200 and register a new user', async () => {
+  it('deve retornar 200 e registrar um novo usuário', async () => {
     const newUser = {
       nome: 'Test User',
       senha: '123456',
@@ -150,7 +150,7 @@ describe('POST /cadastro', () => {
 });
 
 describe('GET /filmes', () => {
-  it('should return all filmes if no query parameter is provided', async () => {
+  it('deve retornar todos os filmes se nenhum parâmetro de consulta for fornecido', async () => {
     const filmesCollection = db.collection('filmes');
     const testFilmes = [
       { nome: 'Filme 1', diretor: 'Diretor 1' },
@@ -167,7 +167,7 @@ describe('GET /filmes', () => {
     await filmesCollection.deleteMany({});
   });
 
-  it('should return filtered filmes by nome if query parameter is provided', async () => {
+  it('deve retornar filmes filtrados pelo nome se um parâmetro de consulta for fornecido', async () => {
     const filmesCollection = db.collection('filmes');
     const testFilmes = [
       { nome: 'Filme 1', diretor: 'Diretor 1' },
@@ -200,7 +200,7 @@ describe('DELETE /usuario/:id', () => {
     await db.collection('cadastro').deleteMany({});
   });
 
-  it('should return 401 if senha is incorrect', async () => {
+  it('deve retornar 401 se a senha estiver incorreta', async () => {
     const res = await request(app)
       .delete(`/usuario/${userId}`)
       .send({ senha: 'wrongpassword' });
@@ -208,7 +208,7 @@ describe('DELETE /usuario/:id', () => {
     expect(res.body).toHaveProperty('mensagem', 'Senha incorreta ou usuário não encontrado.');
   });
 
-  it('should return 200 and delete the user if senha is correct', async () => {
+  it('deve retornar 200 e excluir o usuário se a senha estiver correta', async () => {
     const res = await request(app)
       .delete(`/usuario/${userId}`)
       .send({ senha: '123456' });
@@ -232,20 +232,20 @@ describe('POST /logout', () => {
     await db.collection('logins').deleteMany({});
   });
 
-  it('should return 400 if userId is missing', async () => {
+  it('deve retornar 400 se o userId estiver faltando', async () => {
     const res = await request(app).post('/logout').send({});
     expect(res.statusCode).toEqual(400);
     expect(res.body).toHaveProperty('mensagem', 'userId é obrigatório.');
   });
 
-  it('should return 200 and register a logout action', async () => {
+  it('deve retornar 200 e registrar uma ação de logout', async () => {
     await db.collection('logins').insertOne({ userId, action: 'login', timestamp: new Date() });
 
     const res = await request(app).post('/logout').send({ userId: userId.toString() });
     expect(res.statusCode).toEqual(200);
     expect(res.body).toHaveProperty('mensagem', 'Logout registrado com sucesso.');
   });
-  describe('MongoDB Connection', () => {
+  describe('Conexão com o MongoDB', () => {
     let originalMongoClientConnect;
     let consoleErrorSpy;
   
@@ -266,7 +266,7 @@ describe('POST /logout', () => {
       consoleErrorSpy.mockRestore();
     });
   
-    it('should console.error if unable to connect to MongoDB', async () => {
+    it('deve exibir console.error se não conseguir conectar ao MongoDB', async () => {
       try {
         // Attempt to start the app, which triggers MongoDB connection
         await require('./app'); // Replace with the correct path to your app file
@@ -284,7 +284,7 @@ describe('POST /logout', () => {
       await db.collection('cadastro').deleteMany({});
     });
   
-    it('should return 200 and message "Nenhum dado foi alterado." if no data is provided', async () => {
+    it('deve retornar 200 e a mensagem "Nenhum dado foi alterado." se nenhum dado for fornecido', async () => {
       const userId = new ObjectId(); // Cria um novo ID de usuário
       const res = await request(app)
         .put(`/usuario/${userId}`)
@@ -294,7 +294,7 @@ describe('POST /logout', () => {
       expect(res.body).toHaveProperty('mensagem', 'Nenhum dado foi alterado.');
     });
   
-    it('should return 204 if user data is updated successfully', async () => {
+    it('deve retornar 204 se os dados do usuário forem atualizados com sucesso', async () => {
       const userData = {
         nome: 'Test User',
         senha: '123456',
@@ -330,7 +330,7 @@ describe('POST /logout', () => {
       expect(updatedUser.email).toEqual(updatedData.email);
     });
   
-    it('should return 200 and message "Nenhum dado foi alterado." if ID does not exist', async () => {
+    it('deve retornar 200 e a mensagem "Nenhum dado foi alterado." se o ID não existir', async () => {
       const nonExistentId = new ObjectId(); // ID que não existe no banco de dados
       const res = await request(app)
         .put(`/usuario/${nonExistentId}`)
@@ -340,7 +340,7 @@ describe('POST /logout', () => {
       expect(res.body).toHaveProperty('mensagem', 'Nenhum dado foi alterado.');
     });
   
-    it('should return 500 if an internal server error occurs', async () => {
+    it('deve retornar 500 se ocorrer um erro interno no servidor', async () => {
       // Forçar um erro interno simulando um erro no banco de dados
       const mockDbError = new Error('Erro no banco de dados');
       jest.spyOn(db.collection('cadastro'), 'updateOne').mockRejectedValue(mockDbError);
@@ -362,7 +362,7 @@ describe('POST /logout', () => {
       fetchMock.resetMocks();
     });
   
-    it('should return search results and save them to the database when results are found', async () => {
+    it('deve retornar resultados de pesquisa e salvá-los no banco de dados quando os resultados forem encontrados', async () => {
       const query = 'Batman';
       const results = [
         { title: 'Batman Begins', year: '2005' },
@@ -385,7 +385,7 @@ describe('POST /logout', () => {
       expect(savedSearch.results).toEqual(results); // Verifica se os resultados salvos são os mesmos da pesquisa
     });
   
-    it('should return 404 and save empty results to the database when no movies are found', async () => {
+    it('deve retornar 404 e salvar resultados vazios no banco de dados quando nenhum filme for encontrado', async () => {
       const query = 'NonExistentMovie';
   
       fetchMock.mockResponseOnce(JSON.stringify({ Response: 'False', Error: 'Movie not found!' }));
@@ -404,7 +404,7 @@ describe('POST /logout', () => {
       expect(savedSearch.results).toEqual([]); // Verifica se os resultados salvos são um array vazio
     });
   
-    it('should return 500 and save error message to the database when an internal server error occurs', async () => {
+    it('deve retornar 500 e salvar a mensagem de erro no banco de dados quando ocorrer um erro interno no servidor', async () => {
       const query = 'InternalError';
   
       fetchMock.mockRejectOnce(new Error('Internal server error'));
@@ -423,12 +423,12 @@ describe('POST /logout', () => {
       expect(savedSearch.results).toEqual([]); // Verifica se os resultados salvos são um array vazio
     });
   
-    it('should return 400 when query parameter is missing', async () => {
+    it('deve retornar 400 quando o parâmetro de consulta estiver faltando', async () => {
       const response = await request(app)
         .get('/search');
   
       expect(response.status).toBe(400); // Verifica se o status da resposta é 400
-      expect(response.body).toEqual({ mensagem: 'Query parameter is required' });
+      expect(response.body).toEqual({ mensagem: 'Query parameter is required and must be a non-empty string' });
     });
   });
 })
