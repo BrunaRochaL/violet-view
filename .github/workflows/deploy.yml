@@ -27,6 +27,5 @@ jobs:
             sudo npm install -g pm2 &&
             cd /var/www/back_end &&
             git pull &&
-            pm2 delete all &&
             pm2 start /var/www/back_end/app.js
           "
