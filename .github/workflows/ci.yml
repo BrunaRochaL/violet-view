@@ -22,5 +22,8 @@ jobs:
       - name: Install dependencies
         run: cd back_end && npm install
 
+      - name: Install jest
+        run: npm install -g jest
+
       - name: Run unit tests
         run: cd back_end && npm test
