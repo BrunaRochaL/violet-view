@@ -23,7 +23,7 @@ jobs:
         run: cd back_end && npm install
 
       - name: Run ESLint
-        run: cd back_end && npx eslint . --ext .js,.jsx,.ts,.tsx
+        run: cd back_end && npx eslint .
 
       - name: Run unit tests
         run: cd back_end && npm test
