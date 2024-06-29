@@ -21,17 +21,17 @@ jobs:
 
       - name: Deploy to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@54.244.218.245 "
-          curl -sL https://deb.nodesource.com/setup_20.x | sudo -E bash - &&
-          sudo apt-get install -y nodejs &&
-          sudo npm install -g pm2 &&
-          cd /var/www/back_end &&
-          git reset --hard origin &&
-          git pull &&
-          pm2 describe app > /dev/null
-          if [ $? -eq 0 ]; then
-            pm2 restart app
-          else
-            pm2 start /var/www/back_end/app.js --name app
-          fi
-        "
+          ssh -o StrictHostKeyChecking=no ubuntu@54.244.218.245 << 'EOF'
+            set -e
+            curl -sL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+            sudo npm install -g pm2
+            cd /var/www/back_end
+            git reset --hard origin
+            git pull
+            if pm2 describe app > /dev/null; then
+              pm2 restart app
+            else
+              pm2 start /var/www/back_end/app.js --name app
+            fi
+          EOF
