@@ -22,7 +22,7 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@54.244.218.245 "
-            sudo npm install -g pm2 &&
+            npm install -g pm2 &&
             cd /var/www/back_end &&
             git pull &&
             pm2 restart api
