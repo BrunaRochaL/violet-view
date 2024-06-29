@@ -227,7 +227,7 @@ const saveSearchResults = async (query, results) => {
 
 // Endpoint para pesquisa de filmes
 app.get("/search", async (req, res) => {
-  res.status(500).json({ mensagem: "Simulação erro." });
+  res.status(500).json({ mensagem: "Simulação erro1." });
   return;
   const query = req.query.query;
   if (!query) {
