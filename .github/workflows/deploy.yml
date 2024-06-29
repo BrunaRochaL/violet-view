@@ -22,6 +22,8 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@54.244.218.245 "
+            curl -sL https://deb.nodesource.com/setup_20.x | sudo -E bash - &&
+            sudo apt-get install -y nodejs &&
             npm install -g pm2 &&
             cd /var/www/back_end &&
             git pull &&
