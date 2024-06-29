@@ -26,6 +26,7 @@ jobs:
             sudo apt-get install -y nodejs &&
             sudo npm install -g pm2 &&
             cd /var/www/back_end &&
+            git reset --hard origin &&
             git pull &&
             pm2 start /var/www/back_end/app.js
           "
