@@ -22,8 +22,14 @@ jobs:
       - name: Install dependencies
         run: cd back_end && npm install
 
+      - name: Download Qodana
+        run: |
+          wget https://download.jetbrains.com/qodana/qodana-cli-latest-linux.tar.gz -O qodana-cli.tar.gz
+          tar -xzf qodana-cli.tar.gz
+          sudo mv qodana /usr/local/bin/qodana
+
       - name: Run static code analysis
-        run: cd back_end && npx qodana scan --show-report
+        run: cd back_end && qodana scan --show-report
 
       - name: Run unit tests
         run: cd back_end && npm test
