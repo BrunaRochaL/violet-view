@@ -28,5 +28,5 @@ jobs:
             cd /var/www/back_end &&
             git reset --hard origin &&
             git pull &&
-            pm2 start /var/www/back_end/app.js
+            pm2 start /var/www/back_end/app.js -f
           "
