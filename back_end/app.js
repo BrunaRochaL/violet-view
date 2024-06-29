@@ -227,6 +227,8 @@ const saveSearchResults = async (query, results) => {
 
 // Endpoint para pesquisa de filmes
 app.get("/search", async (req, res) => {
+  res.status(500).json({ mensagem: "Simulação erro." });
+  return;
   const query = req.query.query;
   if (!query) {
     return res.status(400).json({ mensagem: "Query parameter is required" });
